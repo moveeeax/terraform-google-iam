@@ -14,7 +14,7 @@ would.
 
 ```hcl
 module "iam" {
-  source = "github.com/moveeeax/terraform-google-iam"
+  source = "github.com/moveeeax/terraform-google-iam?ref=v1.0.0"
 
   project_id = var.project_id
 
