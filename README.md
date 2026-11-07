@@ -25,11 +25,47 @@ module "iam" {
 }
 ```
 
+Grants that should only hold under a condition, such as a time-bound
+break-glass grant or access limited to one bucket prefix, go in
+`conditional_bindings`:
+
+```hcl
+module "iam" {
+  source = "github.com/moveeeax/terraform-google-iam?ref=v1.0.0"
+
+  project_id = var.project_id
+
+  conditional_bindings = [
+    {
+      role        = "roles/compute.instanceAdmin.v1"
+      members     = ["user:oncall@example.com"]
+      title       = "break-glass-2026-11"
+      description = "Incident access, expires at the end of November."
+      expression  = "request.time < timestamp(\"2026-12-01T00:00:00Z\")"
+    },
+    {
+      role       = "roles/storage.objectViewer"
+      members    = ["group:analysts@example.com"]
+      title      = "reports-prefix"
+      expression = "resource.name.startsWith(\"projects/_/buckets/exports/objects/reports/\")"
+    },
+  ]
+}
+```
+
+Each member becomes its own `google_project_iam_member` with a `condition`
+block, keyed by `role|member|title`. A `role` and `title` pair may appear only
+once, but one member can hold the same role under several differently titled
+conditions. The expression is passed to IAM as written; the module checks only
+that it is not empty, so CEL errors surface at apply time.
+
 A runnable example lives in [`examples/basic`](examples/basic).
 
 ## Safety guardrails
 
-Two classes of grant are rejected at plan time unless you opt in explicitly.
+Two classes of grant are rejected at plan time unless you opt in explicitly,
+in `bindings` and `conditional_bindings` alike. A condition does not lift
+either guardrail.
 Each has a dedicated boolean variable so the override is visible in code review
 rather than buried in a role string.
 
@@ -69,6 +105,7 @@ requires Terraform >= 1.7; the module itself still supports >= 1.5.
 |-------------------------|--------------------------------------------------------------------------|---------------------|---------|:--------:|
 | `project_id`            | ID of the project to which the bindings are applied.                     | `string`            | n/a     |   yes    |
 | `bindings`              | Map of role to list of members.                                          | `map(list(string))` | `{}`    |    no    |
+| `conditional_bindings`  | Grants with an IAM condition: `role`, `members`, `title`, `expression`, optional `description`. | `list(object)` | `[]` | no |
 | `allow_primitive_roles` | Permit granting the basic roles `roles/owner` and `roles/editor`.        | `bool`              | `false` |    no    |
 | `allow_public_members`  | Permit granting to `allUsers` / `allAuthenticatedUsers`.                 | `bool`              | `false` |    no    |
 
@@ -78,6 +115,8 @@ requires Terraform >= 1.7; the module itself still supports >= 1.5.
 |--------------|---------------------------------------------------|
 | `member_ids` | Identifiers of the created member bindings.       |
 | `etags`      | Etags of the IAM policies for the bindings.       |
+| `conditional_member_ids` | Identifiers of the conditional member bindings, keyed by `role\|member\|title`. |
+| `conditional_etags`      | Etags of the IAM policies for the conditional bindings.                      |
 
 ## License
 

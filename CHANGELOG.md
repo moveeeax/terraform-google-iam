@@ -6,6 +6,17 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `conditional_bindings` input: a list of `role`, `members`, `title`,
+  `expression` and optional `description` that creates
+  `google_project_iam_member` grants with a `condition` block, for time-bound or
+  resource-scoped access. The primitive-role and public-member guardrails apply
+  to these grants as well, and roles and members get the same shape validation
+  as `bindings`. Conditional grants live in a separate resource, so existing
+  `bindings` keep their addresses.
+- `conditional_member_ids` and `conditional_etags` outputs.
+
 ### Changed
 
 - CI: bump actions to their current majors, pin tool versions, and restrict the

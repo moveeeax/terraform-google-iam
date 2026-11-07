@@ -27,6 +27,18 @@ module "iam" {
       "serviceAccount:app@${var.project_id}.iam.gserviceaccount.com",
     ]
   }
+
+  # Time-bound grant: IAM stops honouring it once the condition is false, but
+  # the binding itself stays in the policy until it is removed here.
+  conditional_bindings = [
+    {
+      role        = "roles/logging.viewer"
+      members     = ["group:oncall@example.com"]
+      title       = "incident-access"
+      description = "Temporary log access for an incident."
+      expression  = "request.time < timestamp(\"2026-12-01T00:00:00Z\")"
+    },
+  ]
 }
 
 variable "project_id" {
